@@ -1,9 +1,9 @@
-#include <linux/init.h>
-#include <linux/module.h>
-#include <linux/kernel.h>
-#include <linux/io.h>
-#include <linux/gpio.h>
-#include <linux/interrupt.h>
+// #include <linux/init.h>
+// #include <linux/module.h>
+// #include <linux/kernel.h>
+// #include <linux/io.h>
+// #include <linux/gpio.h>
+// #include <linux/interrupt.h>
 
 #define GPIO_ADDR_BASE                  0x3F200000
 #define LED_PIN	                        17
@@ -66,6 +66,11 @@ static void set_pull_all_pin(int pull)
 }
 static void my_tasklet_function(unsigned long data)
 {
+    if(get_mode_pin(LED_PIN)==0)
+    {
+        printk(KERN_ALERT "error tasklet_function\n");
+        return;
+    }
     if(get_value_pin(LED_PIN))
     {
         set_value_pin(LED_PIN,1);
@@ -75,17 +80,18 @@ static void my_tasklet_function(unsigned long data)
         set_value_pin(LED_PIN,0);
     }
 }
-static void  irq_gpio_handler(int irq, void *dev_id)
+static irqreturn_t  irq_gpio_handler(int irq, void *dev_id)
 {
-    tasklet_init(&my_tasket,my_tasklet_function,0)
-    tasklet_schedule(&my_tasket,)
+    tasklet_init(&my_tasket,my_tasklet_function,0);
+    tasklet_schedule(&my_tasket);
+    return IRQ_HANDLED;
 
 }
 static int __init exam_init(void)
 {
     int ret;
-    gpio->addr_base=(unsigned int*)ioremap(GPIO_ADDR_BASE,0x100);
-    if(gpio->addr_base==NULL)
+    addr_base=(unsigned int*)ioremap(GPIO_ADDR_BASE,0x100);
+    if(addr_base==NULL)
     {
         printk(KERN_ALERT "Error maping \n");
         return -ENOMEM;
@@ -114,10 +120,10 @@ static void __exit exam_exit(void)
 {
    
     set_value_pin(LED_PIN,0);
-    iounmap(gpio->addr_base);
+    iounmap(addr_base);
     printk(KERN_INFO "End\n");
     free_irq(irq_line_buttom,NULL);
-    tasklet_skill(&my_tasket);
+    tasklet_kill(&my_tasket);
     
 }
 module_init(exam_init);
